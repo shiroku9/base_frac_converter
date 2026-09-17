@@ -1,0 +1,50 @@
+name: Build macOS DMG
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main, master ]
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install PyInstaller (Tsinghua mirror)
+        run: |
+          python -m pip install --upgrade pip -i https://pypi.tuna.tsinghua.edu.cn/simple
+          python -m pip install pyinstaller -i https://pypi.tuna.tsinghua.edu.cn/simple
+
+      - name: Build .app bundle
+        run: |
+          pyinstaller \
+            --noconfirm \
+            --clean \
+            --windowed \
+            --name "小数进制转换器" \
+            --add-data "图片.png:." \
+            gui.py
+
+      - name: Create DMG
+        run: |
+          mkdir -p dist
+          hdiutil create \
+            -volname "小数进制转换器" \
+            -srcfolder "dist/小数进制转换器.app" \
+            -ov -format UDZO \
+            "dist/小数进制转换器.dmg"
+
+      - name: Upload DMG
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-dmg
+          path: dist/小数进制转换器.dmg
+          if-no-files-found: error
