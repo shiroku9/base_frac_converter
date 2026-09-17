@@ -18,6 +18,9 @@ jobs:
         with:
           python-version: '3.12'
 
+      - name: Run unit tests
+        run: python -m unittest -v test_conversions
+
       - name: Install PyInstaller (Tsinghua mirror)
         run: |
           python -m pip install --upgrade pip -i https://pypi.tuna.tsinghua.edu.cn/simple
@@ -33,6 +36,17 @@ jobs:
             --add-data "图片.png:." \
             gui.py
 
+      - name: Verify app bundle
+        run: |
+          APP="dist/小数进制转换器.app"
+          EXE="$APP/Contents/MacOS/小数进制转换器"
+          test -d "$APP"
+          test -f "$EXE"
+          file "$EXE" | grep -q "Mach-O"
+          test -n "$(find "$APP" -name '图片.png' -print -quit)"
+          echo "--- bundle tree ---"
+          find "$APP" -maxdepth 3 -print
+
       - name: Create DMG
         run: |
           mkdir -p dist
@@ -47,4 +61,14 @@ jobs:
         with:
           name: macos-dmg
           path: dist/小数进制转换器.dmg
+          if-no-files-found: error
+
+      - name: Zip app bundle
+        run: cd dist && zip -r app-bundle.zip "小数进制转换器.app"
+
+      - name: Upload app bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-app-bundle
+          path: dist/app-bundle.zip
           if-no-files-found: error
